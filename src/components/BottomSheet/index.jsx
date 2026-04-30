@@ -75,10 +75,7 @@ export default function BottomSheet({ sheetState, onStateChange, filtered, citie
       <div className="rm-sheet__handle-zone" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onMouseDown={onMouseDown}>
         <div className="rm-sheet__handle"/>
         <div className="rm-sheet__header">
-          <div className="rm-logo">
-            <div className="rm-logo__icon">AR</div>
-            <span className="rm-logo__name">ROLLERMAP</span>
-          </div>
+          <img src="/logo.png" alt="RollerMap" style={{height:36,width:'auto',objectFit:'contain'}}/>
           <span style={{fontSize:11,fontWeight:700,color:'var(--muted2)',background:'var(--line2)',padding:'3px 10px',borderRadius:'var(--r-full)'}}>
             {loading?'…':`${filtered.length} lugar${filtered.length!==1?'es':''}`}
           </span>
@@ -110,12 +107,12 @@ export default function BottomSheet({ sheetState, onStateChange, filtered, citie
       </div>
 
       {sheetState!=='closed'&&(
-        <div style={{flexShrink:0,margin:'0 12px 16px',padding:'11px 13px',background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:'var(--r-sm)',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{flexShrink:0,margin:'0 12px 16px',padding:'11px 13px',background:'var(--grad-soft)',border:'1px solid rgba(0,229,204,0.2)',borderRadius:'var(--r-sm)',display:'flex',alignItems:'center',gap:10}}>
           <div style={{flex:1,fontSize:12,color:'var(--muted)'}}>
             <strong style={{fontSize:12.5,fontWeight:700,color:'var(--ink)',display:'block',marginBottom:1}}>¿Tenés una escuela o grupo?</strong>
             Sumalo al mapa
           </div>
-          <button className="rm-btn rm-btn--sm" style={{background:'var(--grupo)',color:'white',flexShrink:0}} onClick={onRegisterClick}>
+          <button className="rm-btn rm-btn--primary rm-btn--sm" style={{flexShrink:0,borderRadius:'var(--r-full)'}} onClick={onRegisterClick}>
             Registrar →
           </button>
         </div>
