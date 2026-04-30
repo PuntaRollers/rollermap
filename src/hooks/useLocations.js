@@ -15,7 +15,7 @@ export function useLocations({ type = null } = {}) {
 
       let query = supabase
         .from('locations')
-        .select('id,name,type,description,city,department,address,lat,lng,instagram,whatsapp,schedule,verified,featured')
+        .select('id,name,type,description,city,department,address,lat,lng,instagram,whatsapp,schedule,verified,featured,image_url')
         .eq('status', 'approved')
         .order('featured', { ascending: false })
         .order('name',     { ascending: true })
