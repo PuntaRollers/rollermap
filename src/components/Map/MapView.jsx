@@ -185,7 +185,11 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         onClick={handleGeolocate}
         disabled={locating}
       >
-        {locating ? '⟳' : '📍'} {locating ? 'Buscando…' : 'Cerca mío'}
+        {locating ? (
+          <>⟳ Buscando…</>
+        ) : (
+          <>🛼 <span style={{ display:'flex', flexDirection:'column', lineHeight:1.1 }}><span>Tocá aquí</span><span style={{ fontSize:9, opacity:0.7, fontWeight:500 }}>para ubicarte</span></span></>
+        )}
       </button>
     </div>
   )
