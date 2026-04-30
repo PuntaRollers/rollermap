@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import { supabase } from '../../lib/supabase'
 
 const STEPS=[{id:1,label:'Básico',icon:'📋'},{id:2,label:'Ubicación',icon:'📍'},{id:3,label:'Contacto',icon:'📲'}]
-const INITIAL_FORM={type:'',name:'',city:'',department:'',address:'',lat:'',lng:'',instagram:'',whatsapp:'',schedule:'',description:'',imageFile:null}
+const INITIAL_FORM={type:'',name:'',city:'',department:'',address:'',lat:'',lng:'',instagram:'',whatsapp:'',email:'',schedule:'',description:'',imageFile:null}
 const DEPARTMENTS=['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro','Rivera','Rocha','Salto','San José','Soriano','Tacuarembó','Treinta y Tres']
 const FALLBACK_CITIES=['Montevideo','Punta del Este','Maldonado','Colonia del Sacramento','Salto','Paysandú','Rivera','Melo','Minas','Rocha','Durazno','Mercedes','Treinta y Tres','San José de Mayo','Florida','Trinidad','Carmelo','Artigas','Young','Fray Bentos']
 
@@ -72,11 +72,22 @@ function validate(step,form) {
   const errs={}
   if (step===1){if(!form.type) errs.type='Seleccioná un tipo';if(!form.name.trim()) errs.name='El nombre es obligatorio';if(!form.city.trim()) errs.city='La ciudad es obligatoria'}
   if (step===2){if(form.lat&&isNaN(parseFloat(form.lat))) errs.lat='Latitud inválida';if(form.lng&&isNaN(parseFloat(form.lng))) errs.lng='Longitud inválida'}
+  if (step===3){if(form.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email='Email inválido'}
   return errs
 }
 
 async function submitToSupabase(form) {
-  const payload={type:form.type,name:form.name.trim(),city:form.city.trim(),department:form.department||null,address:form.address.trim()||null,lat:form.lat?parseFloat(form.lat):null,lng:form.lng?parseFloat(form.lng):null,instagram:form.instagram.replace('@','').trim()||null,whatsapp:form.whatsapp.replace(/\D/g,'')||null,schedule:form.schedule.trim()||null,description:form.description.trim()||null,status:'pending'}
+  const payload={
+    type:form.type, name:form.name.trim(), city:form.city.trim(),
+    department:form.department||null, address:form.address.trim()||null,
+    lat:form.lat?parseFloat(form.lat):null, lng:form.lng?parseFloat(form.lng):null,
+    instagram:form.instagram.replace('@','').trim()||null,
+    whatsapp:form.whatsapp.replace(/\D/g,'')||null,
+    email:form.email.trim()||null,
+    schedule:form.schedule.trim()||null,
+    description:form.description.trim()||null,
+    status:'pending'
+  }
   const {data,error}=await supabase.from('locations').insert(payload).select('id').single()
   if (error) throw new Error(error.message)
   return data
@@ -158,7 +169,7 @@ function Step2({form,errors,onChange}) {
   )
 }
 
-function Step3({form,onChange}) {
+function Step3({form,errors,onChange}) {
   const fileInputRef=useRef(null)
   const [preview,setPreview]=useState(null)
   const handleFile=(e)=>{
@@ -178,6 +189,12 @@ function Step3({form,onChange}) {
       <div className="rm-form-group">
         <label className="rm-label">WhatsApp</label>
         <input className="rm-input" placeholder="091 234 567" value={form.whatsapp} inputMode="tel" onChange={(e)=>onChange('whatsapp',e.target.value)}/>
+      </div>
+      <div className="rm-form-group">
+        <label className="rm-label">Email de contacto</label>
+        <input className={`rm-input ${errors.email?'rm-input--error':''}`} placeholder="contacto@tuescuela.com" value={form.email} inputMode="email" onChange={(e)=>onChange('email',e.target.value)}/>
+        <span style={{fontSize:11,color:'var(--muted2)'}}>Solo lo ve el equipo de Alianza Roller</span>
+        {errors.email&&<span style={{fontSize:11.5,color:'var(--danger)'}}>⚠ {errors.email}</span>}
       </div>
       <div className="rm-form-group">
         <label className="rm-label">Horarios</label>
@@ -205,12 +222,12 @@ function SuccessScreen({form,onClose}) {
   return (
     <div style={{flex:1,display:'flex',flexDirection:'column',overflowY:'auto'}}>
       <div style={{padding:'28px 24px',display:'flex',flexDirection:'column',alignItems:'center',gap:16,textAlign:'center'}}>
-        <div style={{width:64,height:64,borderRadius:'50%',background:'#D1FAE5',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,animation:'rm-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)'}}>✓</div>
+        <div style={{width:64,height:64,borderRadius:'50%',background:'rgba(0,229,204,0.15)',border:'2px solid var(--brand)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,animation:'rm-pop 0.4s cubic-bezier(0.34,1.56,0.64,1)'}}>✓</div>
         <div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:700,color:'var(--ink)'}}>¡Solicitud enviada!</div>
           <p style={{fontSize:14,color:'var(--muted)',lineHeight:1.6,marginTop:6,maxWidth:300}}><strong style={{color:'var(--ink)'}}>{form.name}</strong> está pendiente de revisión.</p>
         </div>
-        <div style={{width:'100%',maxWidth:360,background:'var(--surface)',borderRadius:14,padding:'16px 18px',border:'1px solid var(--line)',textAlign:'left'}}>
+        <div style={{width:'100%',maxWidth:360,background:'rgba(255,255,255,0.04)',borderRadius:14,padding:'16px 18px',border:'1px solid rgba(255,255,255,0.08)',textAlign:'left'}}>
           <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'1.5px',color:'var(--muted2)',marginBottom:12}}>¿Qué pasa ahora?</div>
           {[{icon:'🔍',text:'El equipo de Alianza Roller revisa tu solicitud.'},{icon:'⏱',text:'El proceso tarda entre 24 y 48 horas hábiles.'},{icon:hasIg?'📸':hasWa?'💬':'📬',text:hasIg&&hasWa?`Te contactamos por Instagram (@${form.instagram}) o WhatsApp.`:hasIg?`Te contactamos por Instagram (@${form.instagram}).`:hasWa?'Te contactamos por WhatsApp.':'Te avisamos cuando esté aprobado.'},{icon:'🗺',text:'Una vez aprobada, aparece en el mapa.'}].map(({icon,text},i)=>(
             <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:8}}>
@@ -287,7 +304,7 @@ export default function RegisterForm({onClose,isDesktop=false}) {
               {submitState==='error'&&<div className="rm-alert rm-alert--error"><span>⚠️</span><span>{submitError}</span></div>}
               {step===1&&<Step1 form={form} errors={errors} onChange={onChange} cities={cities}/>}
               {step===2&&<Step2 form={form} errors={errors} onChange={onChange}/>}
-              {step===3&&<Step3 form={form} onChange={onChange}/>}
+              {step===3&&<Step3 form={form} errors={errors} onChange={onChange}/>}
             </div>
             <div className="rm-modal__footer">
               {step>1&&<button className="rm-btn rm-btn--secondary" onClick={handleBack} disabled={isLoading}>Atrás</button>}
