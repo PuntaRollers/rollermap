@@ -102,7 +102,8 @@ export default function BottomSheet({ sheetState, onStateChange, filtered, citie
           <div className="rm-empty"><span style={{fontSize:28}}>🛼</span><p style={{fontSize:13}}>Sin resultados.<br/>Probá otros filtros.</p></div>
         )}
         {filtered.map(loc=>(
-          <LocationCard key={loc.id} ref={(el)=>setCardRef(loc.id,el)} loc={loc} selected={loc.id===selectedId} onClick={(l)=>{onCardClick(l);onStateChange('mid')}}/>
+          <LocationCard key={loc.id} ref={(el)=>setCardRef(loc.id,el)} loc={loc} selected={loc.id===selectedId}
+            onClick={(l)=>{onCardClick(l);onStateChange('closed')}}/>
         ))}
       </div>
 
