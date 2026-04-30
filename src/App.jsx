@@ -19,15 +19,6 @@ function useIsDesktop() {
   return isDesktop
 }
 
-function Logo({ size = 'md' }) {
-  const h = size === 'sm' ? 26 : 32
-  return (
-    <div className="rm-logo">
-      <img src="/logo.png" alt="RollerMap" style={{ height: h, width: 'auto', objectFit: 'contain' }} />
-    </div>
-  )
-}
-
 export default function App() {
   const isDesktop = useIsDesktop()
   const mapInstanceRef = useRef(null)
@@ -94,7 +85,7 @@ export default function App() {
 
         {!isDesktop && (
           <div className="rm-mobile-header">
-            <Logo size="sm" />
+            <img src="/logo.png" alt="RollerMap" style={{ height:44, width:'auto', objectFit:'contain' }} />
             <div style={{ display:'flex', gap:8, pointerEvents:'all' }}>
               <button
                 className="rm-btn rm-btn--primary rm-btn--sm"
