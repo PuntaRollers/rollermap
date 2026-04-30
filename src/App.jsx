@@ -65,13 +65,24 @@ export default function App() {
   return (
     <div className="rm-app">
       {isDesktop && <Sidebar {...sharedProps} />}
+
       <div style={{ flex:1, position:'relative', height:'100%' }}>
         {error && (
-          <div className="rm-alert rm-alert--error" style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)', zIndex:30, whiteSpace:'nowrap' }}>
+          <div className="rm-alert rm-alert--error"
+            style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)', zIndex:30, whiteSpace:'nowrap' }}>
             ⚠️ {error}
           </div>
         )}
-        <MapView locations={filtered} allLocations={allLocations} selectedId={selectedId} loading={loading} onMarkerClick={handleMarkerClick} onMapReady={handleMapReady} />
+
+        <MapView
+          locations={filtered}
+          allLocations={allLocations}
+          selectedId={selectedId}
+          loading={loading}
+          onMarkerClick={handleMarkerClick}
+          onMapReady={handleMapReady}
+        />
+
         {!isDesktop && (
           <div className="rm-mobile-header">
             <div className="rm-logo">
@@ -81,14 +92,40 @@ export default function App() {
                 <div className="rm-logo__sub">by Alianza Roller</div>
               </div>
             </div>
-            <button className="rm-btn rm-btn--primary rm-btn--sm" style={{ borderRadius:'var(--r-full)' }} onClick={() => setSheetState(s => s === 'closed' ? 'mid' : 'closed')}>
-              {sheetState === 'closed' ? `🛼 Ver lista (${filtered.length})` : '✕ Cerrar'}
-            </button>
+            <div style={{ display:'flex', gap:8, pointerEvents:'all' }}>
+              <button
+                className="rm-btn rm-btn--primary rm-btn--sm"
+                style={{ borderRadius:'var(--r-full)', background:'var(--grupo)' }}
+                onClick={() => setShowRegister(true)}
+              >
+                + Registrar
+              </button>
+              <button
+                className="rm-btn rm-btn--primary rm-btn--sm"
+                style={{ borderRadius:'var(--r-full)' }}
+                onClick={() => setSheetState(s => s === 'closed' ? 'mid' : 'closed')}
+              >
+                {sheetState === 'closed' ? `🛼 (${filtered.length})` : '✕'}
+              </button>
+            </div>
           </div>
         )}
       </div>
-      {!isDesktop && <BottomSheet {...sharedProps} sheetState={sheetState} onStateChange={setSheetState} />}
-      {showRegister && <RegisterForm onClose={() => setShowRegister(false)} isDesktop={isDesktop} />}
+
+      {!isDesktop && (
+        <BottomSheet
+          {...sharedProps}
+          sheetState={sheetState}
+          onStateChange={setSheetState}
+        />
+      )}
+
+      {showRegister && (
+        <RegisterForm
+          onClose={() => setShowRegister(false)}
+          isDesktop={isDesktop}
+        />
+      )}
     </div>
   )
 }
