@@ -11,7 +11,7 @@ export function useAdminLocations() {
     setError(null)
     const { data, error: sbErr } = await supabase
       .from('locations')
-      .select('id,created_at,name,type,city,department,address,lat,lng,instagram,whatsapp,schedule,description,status,verified,featured')
+      .select('id,created_at,name,type,city,department,address,lat,lng,instagram,whatsapp,schedule,description,status,verified,featured,image_url,email')
       .order('created_at', { ascending: false })
     if (sbErr) { setError(sbErr.message); setLoading(false); return }
     setLocations(data ?? [])
@@ -39,9 +39,17 @@ export function useAdminLocations() {
     return true
   }, [fetch])
 
+  const deleteLocation = useCallback(async (id) => {
+    setLocations((prev) => prev.filter((l) => l.id !== id))
+    const { error: sbErr } = await supabase
+      .from('locations').delete().eq('id', id)
+    if (sbErr) { setError(sbErr.message); fetch(); return false }
+    return true
+  }, [fetch])
+
   const toggleFlag = useCallback(async (id, flag, currentValue) => {
     return updateLocation(id, { [flag]: !currentValue })
   }, [updateLocation])
 
-  return { locations, loading, error, refetch: fetch, updateStatus, updateLocation, toggleFlag }
+  return { locations, loading, error, refetch: fetch, updateStatus, updateLocation, deleteLocation, toggleFlag }
 }
