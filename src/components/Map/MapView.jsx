@@ -45,7 +45,6 @@ function createUserMarkerEl() {
 }
 
 function buildPopupHTML(loc) {
-  const c = COLORS[loc.type] ?? COLORS.escuela
   const initials = loc.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
   const waHref = loc.whatsapp ? `https://wa.me/${loc.whatsapp.replace(/\D/g,'')}` : null
   const igHref = loc.instagram ? `https://instagram.com/${loc.instagram.replace('@','')}` : null
@@ -100,8 +99,7 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
     mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right')
     mapRef.current.addControl(new mapboxgl.ScaleControl({ unit:'metric' }), 'bottom-left')
     mapRef.current.on('load', () => {
-      // Padding para que popups no queden tapados por el bottom sheet
-      mapRef.current.setPadding({ bottom: 300, top: 80, left: 0, right: 0 })
+      mapRef.current.setPadding({ bottom: 500, top: 80, left: 0, right: 0 })
       setMapReady(true)
       onMapReady?.(mapRef.current)
     })
