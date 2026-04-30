@@ -19,6 +19,15 @@ function useIsDesktop() {
   return isDesktop
 }
 
+function Logo({ size = 'md' }) {
+  const h = size === 'sm' ? 26 : 32
+  return (
+    <div className="rm-logo">
+      <img src="/logo.png" alt="RollerMap" style={{ height: h, width: 'auto', objectFit: 'contain' }} />
+    </div>
+  )
+}
+
 export default function App() {
   const isDesktop = useIsDesktop()
   const mapInstanceRef = useRef(null)
@@ -85,27 +94,27 @@ export default function App() {
 
         {!isDesktop && (
           <div className="rm-mobile-header">
-            <div className="rm-logo">
-              <div className="rm-logo__icon">AR</div>
-              <div>
-                <div className="rm-logo__name">ROLLERMAP</div>
-                <div className="rm-logo__sub">by Alianza Roller</div>
-              </div>
-            </div>
+            <Logo size="sm" />
             <div style={{ display:'flex', gap:8, pointerEvents:'all' }}>
               <button
                 className="rm-btn rm-btn--primary rm-btn--sm"
-                style={{ borderRadius:'var(--r-full)', background:'var(--grupo)' }}
+                style={{ borderRadius:'var(--r-full)' }}
                 onClick={() => setShowRegister(true)}
               >
                 + Registrar
               </button>
               <button
-                className="rm-btn rm-btn--primary rm-btn--sm"
-                style={{ borderRadius:'var(--r-full)' }}
+                className="rm-btn rm-btn--sm"
+                style={{
+                  borderRadius:'var(--r-full)',
+                  background:'rgba(10,10,22,0.85)',
+                  border:'1px solid rgba(0,229,204,0.3)',
+                  color:'var(--brand)',
+                  backdropFilter:'blur(8px)',
+                }}
                 onClick={() => setSheetState(s => s === 'closed' ? 'mid' : 'closed')}
               >
-                {sheetState === 'closed' ? `🛼 (${filtered.length})` : '✕'}
+                {sheetState === 'closed' ? `🛼 ${filtered.length}` : '✕'}
               </button>
             </div>
           </div>
