@@ -6,9 +6,9 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
 const URUGUAY_CENTER = [-56.1645, -32.5228]
 const COLORS = {
-  escuela: { fill:'#1A6BFF', glow:'rgba(26,107,255,0.28)' },
-  grupo:   { fill:'#00B37D', glow:'rgba(0,179,125,0.28)'  },
-  user:    { fill:'#0EA5E9', glow:'rgba(14,165,233,0.30)' },
+  escuela: { fill:'#00E5CC', glow:'rgba(0,229,204,0.35)' },
+  grupo:   { fill:'#9B4DFF', glow:'rgba(155,77,255,0.35)' },
+  user:    { fill:'#0EA5E9', glow:'rgba(14,165,233,0.35)' },
 }
 
 function createMarkerEl(type, featured = false) {
@@ -19,16 +19,27 @@ function createMarkerEl(type, featured = false) {
   const el = document.createElement('div')
   el.dataset.type = type
   el.style.cssText = `width:${size}px;height:${h}px;cursor:pointer;filter:drop-shadow(0 2px 8px ${c.glow});transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),filter 0.18s ease,opacity 0.2s ease;will-change:transform,opacity;`
-  el.innerHTML = `<svg viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${h}"><path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 26 14 26S32 26 32 16C32 8.268 25.732 2 18 2z" fill="${solid?c.fill:'white'}" stroke="${solid?'none':c.fill}" stroke-width="${solid?0:2}"/><circle cx="18" cy="16" r="5.5" fill="${solid?'rgba(255,255,255,0.9)':c.fill}"/>${featured?`<circle cx="18" cy="16" r="13" fill="none" stroke="${c.fill}" stroke-width="1.5" stroke-dasharray="3.5 3" opacity="0.55"/>`:''}
+  el.innerHTML = `<svg viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${h}">
+    <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 26 14 26S32 26 32 16C32 8.268 25.732 2 18 2z"
+      fill="${solid ? c.fill : 'rgba(10,10,22,0.9)'}"
+      stroke="${solid ? 'none' : c.fill}"
+      stroke-width="${solid ? 0 : 2}"/>
+    <circle cx="18" cy="16" r="5.5"
+      fill="${solid ? 'rgba(0,0,0,0.6)' : c.fill}"/>
+    ${featured ? `<circle cx="18" cy="16" r="13" fill="none" stroke="${c.fill}" stroke-width="1.5" stroke-dasharray="3.5 3" opacity="0.6"/>` : ''}
   </svg>`
-  el.addEventListener('mouseenter', () => { el.style.filter=`drop-shadow(0 5px 18px ${c.glow})`; el.style.transform='scale(1.18) translateY(-2px)' })
-  el.addEventListener('mouseleave', () => { el.dispatchEvent(new CustomEvent('rm:mouseleave',{bubbles:true})) })
+  el.addEventListener('mouseenter', () => {
+    el.style.filter = `drop-shadow(0 5px 18px ${c.glow})`
+    el.style.transform = 'scale(1.18) translateY(-2px)'
+  })
+  el.addEventListener('mouseleave', () => {
+    el.dispatchEvent(new CustomEvent('rm:mouseleave', { bubbles: true }))
+  })
   return el
 }
 
 function createUserMarkerEl() {
   const el = document.createElement('div')
-  el.className = 'rm-minimap__marker'
   el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${COLORS.user.fill};border:3px solid white;box-shadow:0 2px 8px ${COLORS.user.glow};`
   return el
 }
@@ -36,10 +47,32 @@ function createUserMarkerEl() {
 function buildPopupHTML(loc) {
   const c = COLORS[loc.type] ?? COLORS.escuela
   const initials = loc.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
-  const waHref = loc.whatsapp?`https://wa.me/${loc.whatsapp.replace(/\D/g,'')}`:null
-  const igHref = loc.instagram?`https://instagram.com/${loc.instagram.replace('@','')}`:null
-  const desc = loc.description?`${loc.description.slice(0,110)}${loc.description.length>110?'…':''}`:null
-  return `<div class="rm-popup"><div class="rm-popup__header"><div class="rm-avatar rm-avatar--${loc.type} rm-avatar--sm" style="width:38px;height:38px;font-size:13px;border-radius:9px;">${initials}</div><div class="rm-popup__title-col"><div class="rm-popup__name">${loc.name}</div><div class="rm-popup__meta"><span class="rm-badge rm-badge--${loc.type}">${loc.type==='escuela'?'Escuela':'Grupo'}</span><span class="rm-popup__city">📍 ${loc.city}</span></div></div>${loc.verified?'<span class="rm-badge rm-badge--verified">✦</span>':''}</div>${desc?`<p class="rm-popup__desc">${desc}</p>`:''}${loc.schedule?`<div class="rm-popup__schedule">🕐 ${loc.schedule}</div>`:''}<div class="rm-popup__actions">${waHref?`<a href="${waHref}" target="_blank" rel="noopener" class="rm-popup__btn rm-popup__btn--wa">💬 WhatsApp</a>`:''}${igHref?`<a href="${igHref}" target="_blank" rel="noopener" class="rm-popup__btn rm-popup__btn--ig">📸 Instagram</a>`:''}</div></div>`
+  const waHref = loc.whatsapp ? `https://wa.me/${loc.whatsapp.replace(/\D/g,'')}` : null
+  const igHref = loc.instagram ? `https://instagram.com/${loc.instagram.replace('@','')}` : null
+  const desc = loc.description ? `${loc.description.slice(0,110)}${loc.description.length>110?'…':''}` : null
+
+  return `<div class="rm-popup">
+    <div class="rm-popup__header">
+      ${loc.image_url
+        ? `<div style="width:40px;height:40px;border-radius:8px;overflow:hidden;flex-shrink:0;"><img src="${loc.image_url}" style="width:100%;height:100%;object-fit:cover;"/></div>`
+        : `<div class="rm-avatar rm-avatar--${loc.type} rm-avatar--sm" style="width:38px;height:38px;font-size:13px;border-radius:9px;">${initials}</div>`
+      }
+      <div class="rm-popup__title-col">
+        <div class="rm-popup__name">${loc.name}</div>
+        <div class="rm-popup__meta">
+          <span class="rm-badge rm-badge--${loc.type}">${loc.type==='escuela'?'Escuela':'Grupo'}</span>
+          <span class="rm-popup__city">📍 ${loc.city}</span>
+        </div>
+      </div>
+      ${loc.verified ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#00E5CC;font-size:9px;font-weight:900;color:#000;box-shadow:0 0 8px rgba(0,229,204,0.5);flex-shrink:0;">✓</span>` : ''}
+    </div>
+    ${desc ? `<p class="rm-popup__desc">${desc}</p>` : ''}
+    ${loc.schedule ? `<div class="rm-popup__schedule">🕐 ${loc.schedule}</div>` : ''}
+    <div class="rm-popup__actions">
+      ${waHref ? `<a href="${waHref}" target="_blank" rel="noopener" class="rm-popup__btn rm-popup__btn--wa">💬 WhatsApp</a>` : ''}
+      ${igHref ? `<a href="${igHref}" target="_blank" rel="noopener" class="rm-popup__btn rm-popup__btn--ig">📸 Instagram</a>` : ''}
+    </div>
+  </div>`
 }
 
 export default function MapView({ locations=[], allLocations=[], selectedId=null, loading=false, onMarkerClick, onMapReady }) {
@@ -54,67 +87,107 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
 
   useEffect(() => {
     if (mapRef.current) return
-    mapRef.current = new mapboxgl.Map({ container:containerRef.current, style:'mapbox://styles/mapbox/light-v11', center:URUGUAY_CENTER, zoom:6.8, minZoom:5, maxZoom:18, pitchWithRotate:false, maxBounds:[[-62,-36],[-52,-28]] })
-    mapRef.current.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right')
-    mapRef.current.addControl(new mapboxgl.ScaleControl({unit:'metric'}),'bottom-left')
-    mapRef.current.on('load',()=>{ setMapReady(true); onMapReady?.(mapRef.current) })
-    return ()=>{ mapRef.current?.remove(); mapRef.current=null }
-  },[]) // eslint-disable-line
+    mapRef.current = new mapboxgl.Map({
+      container: containerRef.current,
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: URUGUAY_CENTER,
+      zoom: 6.8,
+      minZoom: 5,
+      maxZoom: 18,
+      pitchWithRotate: false,
+      maxBounds: [[-62,-36],[-52,-28]],
+    })
+    mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right')
+    mapRef.current.addControl(new mapboxgl.ScaleControl({ unit:'metric' }), 'bottom-left')
+    mapRef.current.on('load', () => {
+      // Padding para que popups no queden tapados por el bottom sheet
+      mapRef.current.setPadding({ bottom: 300, top: 80, left: 0, right: 0 })
+      setMapReady(true)
+      onMapReady?.(mapRef.current)
+    })
+    return () => { mapRef.current?.remove(); mapRef.current = null }
+  }, []) // eslint-disable-line
 
-  useEffect(()=>{
-    if (!mapReady||!mapRef.current) return
-    allLocations.forEach(loc=>{
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+    allLocations.forEach(loc => {
       if (markersRef.current[loc.id]) return
-      const el=createMarkerEl(loc.type,loc.featured)
-      const popup=new mapboxgl.Popup({offset:42,closeButton:true,maxWidth:'300px'}).setHTML(buildPopupHTML(loc))
-      const marker=new mapboxgl.Marker({element:el,anchor:'bottom'}).setLngLat([loc.lng,loc.lat]).setPopup(popup).addTo(mapRef.current)
-      el.addEventListener('click',()=>{ if(activePopup.current&&activePopup.current!==popup) activePopup.current.remove(); activePopup.current=popup; onMarkerClick?.(loc) })
-      markersRef.current[loc.id]={marker,el,popup}
+      const el = createMarkerEl(loc.type, loc.featured)
+      const popup = new mapboxgl.Popup({ offset:42, closeButton:true, maxWidth:'300px' })
+        .setHTML(buildPopupHTML(loc))
+      const marker = new mapboxgl.Marker({ element:el, anchor:'bottom' })
+        .setLngLat([loc.lng, loc.lat])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+      el.addEventListener('click', () => {
+        if (activePopup.current && activePopup.current !== popup) activePopup.current.remove()
+        activePopup.current = popup
+        onMarkerClick?.(loc)
+      })
+      markersRef.current[loc.id] = { marker, el, popup }
     })
-  },[mapReady,allLocations,onMarkerClick])
+  }, [mapReady, allLocations, onMarkerClick])
 
-  useEffect(()=>{
-    const filteredIds=new Set(locations.map(l=>l.id))
-    const hasFilter=allLocations.length!==locations.length
-    Object.entries(markersRef.current).forEach(([id,{el}])=>{
-      const visible=!hasFilter||filteredIds.has(id)
-      el.style.opacity=visible?'1':'0.15'
-      el.style.pointerEvents=visible?'auto':'none'
+  useEffect(() => {
+    const filteredIds = new Set(locations.map(l => l.id))
+    const hasFilter = allLocations.length !== locations.length
+    Object.entries(markersRef.current).forEach(([id, { el }]) => {
+      const visible = !hasFilter || filteredIds.has(id)
+      el.style.opacity = visible ? '1' : '0.15'
+      el.style.pointerEvents = visible ? 'auto' : 'none'
     })
-  },[locations,allLocations])
+  }, [locations, allLocations])
 
-  useEffect(()=>{
-    Object.entries(markersRef.current).forEach(([id,{el}])=>{
-      const c=COLORS[el.dataset.type]??COLORS.escuela
-      const isSel=id===String(selectedId)
-      el.style.transform=isSel?'scale(1.25) translateY(-3px)':''
-      el.style.filter=`drop-shadow(${isSel?'0 6px 20px':'0 2px 8px'} ${c.glow})`
-      el.style.zIndex=isSel?'5':''
+  useEffect(() => {
+    Object.entries(markersRef.current).forEach(([id, { el }]) => {
+      const c = COLORS[el.dataset.type] ?? COLORS.escuela
+      const isSel = id === String(selectedId)
+      el.style.transform = isSel ? 'scale(1.25) translateY(-3px)' : ''
+      el.style.filter = `drop-shadow(${isSel ? '0 6px 20px' : '0 2px 8px'} ${c.glow})`
+      el.style.zIndex = isSel ? '5' : ''
     })
-  },[selectedId])
+  }, [selectedId])
 
-  const handleGeolocate=useCallback(()=>{
-    if (!navigator.geolocation){setGeoError('No disponible.');return}
-    setLocating(true);setGeoError(null)
+  const handleGeolocate = useCallback(() => {
+    if (!navigator.geolocation) { setGeoError('No disponible.'); return }
+    setLocating(true); setGeoError(null)
     navigator.geolocation.getCurrentPosition(
-      ({coords})=>{
+      ({ coords }) => {
         userMarker.current?.remove()
-        userMarker.current=new mapboxgl.Marker({element:createUserMarkerEl()}).setLngLat([coords.longitude,coords.latitude]).addTo(mapRef.current)
-        mapRef.current.flyTo({center:[coords.longitude,coords.latitude],zoom:11,speed:1.6,curve:1.4,essential:true})
+        userMarker.current = new mapboxgl.Marker({ element: createUserMarkerEl() })
+          .setLngLat([coords.longitude, coords.latitude])
+          .addTo(mapRef.current)
+        mapRef.current.flyTo({ center:[coords.longitude, coords.latitude], zoom:11, speed:1.6, curve:1.4, essential:true })
         setLocating(false)
       },
-      (err)=>{ const msgs={1:'Permiso denegado.',2:'No se pudo obtener.',3:'Tiempo agotado.'}; setGeoError(msgs[err.code]??'Error.'); setLocating(false) },
-      {enableHighAccuracy:true,timeout:8000}
+      (err) => {
+        const msgs = { 1:'Permiso denegado.', 2:'No se pudo obtener.', 3:'Tiempo agotado.' }
+        setGeoError(msgs[err.code] ?? 'Error.')
+        setLocating(false)
+      },
+      { enableHighAccuracy:true, timeout:8000 }
     )
-  },[])
+  }, [])
 
   return (
-    <div style={{position:'relative',width:'100%',height:'100%'}}>
-      <div ref={containerRef} style={{width:'100%',height:'100%'}}/>
-      {(loading||!mapReady)&&<div className="rm-map-loading"><div className="rm-spinner rm-spinner--brand"/>Cargando mapa…</div>}
-      {geoError&&<div className="rm-alert rm-alert--error" style={{position:'absolute',top:14,left:'50%',transform:'translateX(-50%)',zIndex:20,whiteSpace:'nowrap'}}>📍 {geoError}</div>}
-      <button className={`rm-geolocate ${locating?'rm-geolocate--active':''}`} onClick={handleGeolocate} disabled={locating}>
-        {locating?'⟳':'📍'} {locating?'Buscando…':'Cerca mío'}
+    <div style={{ position:'relative', width:'100%', height:'100%' }}>
+      <div ref={containerRef} style={{ width:'100%', height:'100%' }} />
+      {(loading || !mapReady) && (
+        <div className="rm-map-loading">
+          <div className="rm-spinner rm-spinner--brand" /> Cargando mapa…
+        </div>
+      )}
+      {geoError && (
+        <div className="rm-alert rm-alert--error" style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)', zIndex:20, whiteSpace:'nowrap' }}>
+          📍 {geoError}
+        </div>
+      )}
+      <button
+        className={`rm-geolocate ${locating ? 'rm-geolocate--active' : ''}`}
+        onClick={handleGeolocate}
+        disabled={locating}
+      >
+        {locating ? '⟳' : '📍'} {locating ? 'Buscando…' : 'Cerca mío'}
       </button>
     </div>
   )
