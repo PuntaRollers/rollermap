@@ -10,12 +10,13 @@ const LocationCard = forwardRef(function LocationCard({ loc, selected, onClick }
       onClick={() => onClick(loc)}
     >
       {loc.image_url && (
-        <div style={{ width:'100%', height:100, overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ width:'100%', height:72, overflow:'hidden', position:'relative' }}>
           <img src={loc.image_url} alt={loc.name} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+          <div style={{ position:'absolute', bottom:0, left:0, right:0, height:32, background:'linear-gradient(to bottom, transparent, rgba(10,10,22,0.9))' }} />
         </div>
       )}
 
-      <div style={{ padding: loc.image_url ? '12px 14px' : '14px', display:'flex', flexDirection:'column', gap:8 }}>
+      <div style={{ padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
         <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
           {!loc.image_url && (
             <div className={`rm-avatar rm-avatar--${loc.type} rm-avatar--md`}>{initials}</div>
