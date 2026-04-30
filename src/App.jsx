@@ -35,7 +35,7 @@ export default function App() {
 
   const handleMarkerClick = useCallback((loc) => {
     setSelectedId(loc.id)
-    if (!isDesktop) setSheetState('mid')
+    if (!isDesktop) setSheetState('closed')
   }, [setSelectedId, isDesktop])
 
   const handleCardClick = useCallback((loc) => {
