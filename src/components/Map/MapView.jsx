@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
-const URUGUAY_CENTER = [-56.1645, -32.5228]
+const URUGUAY_CENTER = [-56.1645, -34.9011]
 const COLORS = {
   escuela: { fill:'#00E5CC', glow:'rgba(0,229,204,0.35)' },
   grupo:   { fill:'#9B4DFF', glow:'rgba(155,77,255,0.35)' },
@@ -90,7 +90,7 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/light-v11',
       center: URUGUAY_CENTER,
-      zoom: 6.8,
+      zoom: 8,
       minZoom: 5,
       maxZoom: 18,
       pitchWithRotate: false,
@@ -99,7 +99,7 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
     mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right')
     mapRef.current.addControl(new mapboxgl.ScaleControl({ unit:'metric' }), 'bottom-left')
     mapRef.current.on('load', () => {
-      mapRef.current.setPadding({ bottom: 500, top: 80, left: 0, right: 0 })
+      mapRef.current.setPadding({ bottom: 380, top: 60, left: 0, right: 0 })
       setMapReady(true)
       onMapReady?.(mapRef.current)
     })
