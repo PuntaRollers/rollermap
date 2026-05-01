@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase }          from '../../lib/supabase'
 import { useAdminLocations } from '../../hooks/useAdminLocations'
 import AdminLogin            from './AdminLogin'
@@ -8,6 +8,18 @@ const STATUS_CONFIG = {
   pending : { label:'Pendiente',   dot:'#F59E0B' },
   approved: { label:'Aprobada',    dot:'#00E5CC' },
   disabled: { label:'Desactivada', dot:'#6666AA' },
+}
+
+async function geocodeLocation(loc) {
+  const query = [loc.address, loc.city, loc.department, 'Uruguay'].filter(Boolean).join(', ')
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?country=UY&limit=1&access_token=${import.meta.env.VITE_MAPBOX_TOKEN}`
+  const res = await fetch(url)
+  const data = await res.json()
+  if (data.features?.length > 0) {
+    const [lng, lat] = data.features[0].center
+    return { lat, lng }
+  }
+  return null
 }
 
 function SkeletonCard() {
@@ -28,17 +40,31 @@ function SkeletonCard() {
   )
 }
 
-function AdminCard({ loc, onStatusChange, onEdit, onDelete }) {
+function AdminCard({ loc, onStatusChange, onEdit, onDelete, onGeocode }) {
   const sc = STATUS_CONFIG[loc.status] ?? STATUS_CONFIG.disabled
   const initials = loc.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
   const createdAt = new Date(loc.created_at).toLocaleDateString('es-UY',{day:'2-digit',month:'short',year:'numeric'})
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [geocoding, setGeocoding] = useState(false)
 
   const actions = {
     pending : [{label:'✓ Aprobar',newStatus:'approved',cls:'rm-btn--success-soft'},{label:'✕ Desactivar',newStatus:'disabled',cls:'rm-btn--danger-soft'}],
     approved: [{label:'✕ Desactivar',newStatus:'disabled',cls:'rm-btn--danger-soft'}],
     disabled: [{label:'↺ Reactivar',newStatus:'approved',cls:'rm-btn--success-soft'}],
   }[loc.status] ?? []
+
+  const handleGeocode = async () => {
+    setGeocoding(true)
+    const coords = await geocodeLocation(loc)
+    if (coords) {
+      await onGeocode(loc.id, coords)
+    } else {
+      alert(`No se encontraron coordenadas para "${loc.city}". Editá la ubicación manualmente.`)
+    }
+    setGeocoding(false)
+  }
+
+  const hasCoords = loc.lat && loc.lng
 
   return (
     <div className="rm-card">
@@ -67,13 +93,21 @@ function AdminCard({ loc, onStatusChange, onEdit, onDelete }) {
           <span className={`rm-badge rm-badge--${loc.status}`}>{sc.label}</span>
         </div>
 
+        {/* Coordenadas */}
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          {hasCoords ? (
+            <span style={{fontSize:11,color:'var(--brand)'}}>✓ Coordenadas: {parseFloat(loc.lat).toFixed(4)}, {parseFloat(loc.lng).toFixed(4)}</span>
+          ) : (
+            <span style={{fontSize:11,color:'var(--danger)'}}>⚠ Sin coordenadas — no aparece en el mapa</span>
+          )}
+        </div>
+
         <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
           <span style={{fontSize:11,color:'var(--muted2)'}}>📅 {createdAt}</span>
           {loc.instagram && <a href={`https://instagram.com/${loc.instagram}`} target="_blank" rel="noopener" style={{fontSize:11,color:'var(--brand)'}}>@{loc.instagram}</a>}
-          {loc.whatsapp  && <a href={`https://wa.me/${loc.whatsapp}`}          target="_blank" rel="noopener" style={{fontSize:11,color:'var(--grupo-text)'}}>💬 {loc.whatsapp}</a>}
+          {loc.whatsapp  && <a href={`https://wa.me/${loc.whatsapp}`} target="_blank" rel="noopener" style={{fontSize:11,color:'var(--grupo-text)'}}>💬 {loc.whatsapp}</a>}
         </div>
 
-        {/* Email — solo visible en admin */}
         {loc.email && (
           <div style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',background:'rgba(0,229,204,0.06)',borderRadius:'var(--r-sm)',border:'1px solid rgba(0,229,204,0.15)'}}>
             <span style={{fontSize:11}}>✉️</span>
@@ -86,6 +120,19 @@ function AdminCard({ loc, onStatusChange, onEdit, onDelete }) {
             <button key={a.newStatus} className={`rm-btn rm-btn--sm ${a.cls}`} onClick={()=>onStatusChange(loc.id,a.newStatus)}>{a.label}</button>
           ))}
           <button className="rm-btn rm-btn--sm rm-btn--secondary" onClick={()=>onEdit(loc)}>✎ Editar</button>
+
+          {/* Botón geocodificar — solo si no tiene coordenadas */}
+          {!hasCoords && (
+            <button
+              className="rm-btn rm-btn--sm"
+              style={{background:'rgba(0,229,204,0.12)',color:'var(--brand)',border:'1px solid rgba(0,229,204,0.3)'}}
+              onClick={handleGeocode}
+              disabled={geocoding}
+            >
+              {geocoding ? '⟳ Buscando…' : '📍 Auto-ubicar'}
+            </button>
+          )}
+
           {!confirmDelete ? (
             <button className="rm-btn rm-btn--sm rm-btn--danger-soft" style={{marginLeft:'auto'}} onClick={()=>setConfirmDelete(true)}>🗑</button>
           ) : (
@@ -104,7 +151,7 @@ function AdminCard({ loc, onStatusChange, onEdit, onDelete }) {
 function StatsBar({ stats }) {
   return (
     <div className="rm-stats">
-      {[{label:'Total',val:stats.total,color:'var(--ink)'},{label:'Pendientes',val:stats.pending,color:'#FCD34D'},{label:'Aprobadas',val:stats.approved,color:'var(--brand)'},{label:'Inactivas',val:stats.disabled,color:'var(--muted)'}].map(({label,val,color})=>(
+      {[{label:'Total',val:stats.total,color:'var(--ink)'},{label:'Pendientes',val:stats.pending,color:'#FCD34D'},{label:'Aprobadas',val:stats.approved,color:'var(--brand)'},{label:'Sin coords',val:stats.noCoords,color:'var(--danger)'}].map(({label,val,color})=>(
         <div key={label} className="rm-stat">
           <div className="rm-stat__val" style={{color}}>{val}</div>
           <div className="rm-stat__label">{label}</div>
@@ -121,6 +168,7 @@ export default function AdminPanel() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterType,   setFilterType]   = useState('all')
   const [search,       setSearch]       = useState('')
+  const [geocodingAll, setGeocodingAll] = useState(false)
 
   const { locations, loading, error, updateStatus, updateLocation, deleteLocation } = useAdminLocations()
 
@@ -140,14 +188,31 @@ export default function AdminPanel() {
 
   const handleLogout=async()=>{await supabase.auth.signOut();setUser(null)}
 
-  const stats=useMemo(()=>({
+  const handleGeocode = useCallback(async (id, coords) => {
+    await updateLocation(id, { lat: coords.lat, lng: coords.lng })
+  }, [updateLocation])
+
+  const handleGeocodeAll = async () => {
+    const noCoords = locations.filter(l => !l.lat || !l.lng)
+    if (noCoords.length === 0) { alert('Todas las ubicaciones ya tienen coordenadas.'); return }
+    setGeocodingAll(true)
+    for (const loc of noCoords) {
+      const coords = await geocodeLocation(loc)
+      if (coords) await updateLocation(loc.id, { lat: coords.lat, lng: coords.lng })
+      await new Promise(r => setTimeout(r, 300))
+    }
+    setGeocodingAll(false)
+    alert(`✓ Proceso completado para ${noCoords.length} ubicaciones.`)
+  }
+
+  const stats = useMemo(()=>({
     total:locations.length,
     pending:locations.filter(l=>l.status==='pending').length,
     approved:locations.filter(l=>l.status==='approved').length,
-    disabled:locations.filter(l=>l.status==='disabled').length,
+    noCoords:locations.filter(l=>!l.lat||!l.lng).length,
   }),[locations])
 
-  const filtered=useMemo(()=>{
+  const filtered = useMemo(()=>{
     const q=search.trim().toLowerCase()
     return locations.filter(l=>{
       if (filterStatus!=='all'&&l.status!==filterStatus) return false
@@ -172,7 +237,19 @@ export default function AdminPanel() {
       </header>
 
       <main className="rm-admin__main">
-        {!loading&&<StatsBar stats={stats}/>}
+        {!loading && <StatsBar stats={stats}/>}
+
+        {/* Botón geocodificar todas */}
+        {!loading && stats.noCoords > 0 && (
+          <button
+            className="rm-btn rm-btn--full"
+            style={{background:'rgba(0,229,204,0.12)',color:'var(--brand)',border:'1px solid rgba(0,229,204,0.3)',borderRadius:'var(--r-sm)',padding:'11px'}}
+            onClick={handleGeocodeAll}
+            disabled={geocodingAll}
+          >
+            {geocodingAll ? '⟳ Geocodificando…' : `📍 Auto-ubicar todas (${stats.noCoords} sin coordenadas)`}
+          </button>
+        )}
 
         <div className="rm-input-wrap">
           <span className="rm-input-wrap__icon">🔍</span>
@@ -209,6 +286,7 @@ export default function AdminPanel() {
               onStatusChange={updateStatus}
               onEdit={setEditTarget}
               onDelete={deleteLocation}
+              onGeocode={handleGeocode}
             />
           ))}
         </div>
@@ -219,4 +297,4 @@ export default function AdminPanel() {
       )}
     </div>
   )
-      }
+}
