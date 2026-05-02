@@ -88,7 +88,7 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
     if (mapRef.current) return
     mapRef.current = new mapboxgl.Map({
       container: containerRef.current,
-      style: 'mapbox://styles/mapbox/light-v11',
+      style: 'mapbox://styles/mapbox/dark-v11',
       center: URUGUAY_CENTER,
       zoom: 8,
       minZoom: 5,
