@@ -385,5 +385,5 @@ export default function RegisterForm({onClose,isDesktop=false}) {
         )}
       </div>
     </div>
-  )
+  ))
 }
