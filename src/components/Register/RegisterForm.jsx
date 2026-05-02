@@ -311,17 +311,22 @@ export default function RegisterForm({onClose,isDesktop=false}) {
     if (step<3){setStep(s=>s+1);return}
     setSubmitState('loading')
     setSubmitError(null)
+
+    let supabaseOk = false
     try {
       await submitToSupabase(form)
-    } catch(e) {
-      try { await submitToFormspree(form) } catch(_) {
-        setSubmitError('No se pudo enviar. Intentá de nuevo.')
-        setSubmitState('error')
-        return
-      }
+      supabaseOk = true
+    } catch(supabaseErr) {
+      // Supabase falló — mostrar error real para debug
+      console.error('Supabase error:', supabaseErr.message)
+      setSubmitError(`Supabase: ${supabaseErr.message}`)
+      setSubmitState('error')
     }
+
+    // Siempre mandar a Formspree
     try { await submitToFormspree(form) } catch(_) {}
-    setSubmitState('success')
+
+    if (supabaseOk) setSubmitState('success')
   }
 
   const handleBack=()=>{if(step===1){onClose();return}setStep(s=>s-1);setErrors({})}
@@ -375,4 +380,4 @@ export default function RegisterForm({onClose,isDesktop=false}) {
       </div>
     </div>
   )
-}
+      }
