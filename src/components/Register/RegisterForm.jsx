@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { supabase } from '../../lib/supabase'
 
+const FORMSPREE_ID = 'mrejezbk'
+
 const STEPS=[{id:1,label:'Básico',icon:'📋'},{id:2,label:'Ubicación',icon:'📍'},{id:3,label:'Contacto',icon:'📲'}]
 const INITIAL_FORM={type:'',name:'',city:'',department:'',address:'',lat:'',lng:'',instagram:'',whatsapp:'',email:'',schedule:'',description:'',imageFile:null}
 const DEPARTMENTS=['Artigas','Canelones','Cerro Largo','Colonia','Durazno','Flores','Florida','Lavalleja','Maldonado','Montevideo','Paysandú','Río Negro','Rivera','Rocha','Salto','San José','Soriano','Tacuarembó','Treinta y Tres']
@@ -27,7 +29,7 @@ function MiniMap({lat,lng,onChange}) {
   const [hasMarker,setHasMarker]=useState(false)
 
   useEffect(()=>{
-    const map=new mapboxgl.Map({container:containerRef.current,style:'mapbox://styles/mapbox/light-v11',center:[-56.1645,-32.5228],zoom:5.5,minZoom:4,maxZoom:17})
+    const map=new mapboxgl.Map({container:containerRef.current,style:'mapbox://styles/mapbox/dark-v11',center:[-56.1645,-32.5228],zoom:5.5,minZoom:4,maxZoom:17})
     map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right')
     map.on('click',(e)=>{
       const {lat:la,lng:ln}=e.lngLat
@@ -105,6 +107,30 @@ async function submitToSupabase(form) {
   const {data,error}=await supabase.from('locations').insert(payload).select('id').single()
   if (error) throw new Error(error.message)
   return data
+}
+
+async function submitToFormspree(form) {
+  const body = {
+    _subject: `[RollerMap] Nueva solicitud: ${form.name}`,
+    tipo: form.type,
+    nombre: form.name,
+    ciudad: form.city,
+    departamento: form.department || '-',
+    direccion: form.address || '-',
+    lat: form.lat || '-',
+    lng: form.lng || '-',
+    instagram: form.instagram || '-',
+    whatsapp: form.whatsapp || '-',
+    email: form.email || '-',
+    horarios: form.schedule || '-',
+    descripcion: form.description || '-',
+  }
+  const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error('Formspree error')
 }
 
 function Step1({form,errors,onChange,cities}) {
@@ -283,9 +309,28 @@ export default function RegisterForm({onClose,isDesktop=false}) {
     if (Object.keys(errs).length>0){setErrors(errs);return}
     setErrors({})
     if (step<3){setStep(s=>s+1);return}
-    setSubmitState('loading');setSubmitError(null)
-    try{await submitToSupabase(form);setSubmitState('success')}
-    catch(err){setSubmitError(err.message??'Error al enviar.');setSubmitState('error')}
+
+    setSubmitState('loading')
+    setSubmitError(null)
+
+    try {
+      // Intentar Supabase primero
+      await submitToSupabase(form)
+    } catch(supabaseErr) {
+      // Si falla Supabase, mandar a Formspree silenciosamente
+      try {
+        await submitToFormspree(form)
+      } catch(formspreeErr) {
+        setSubmitError('No se pudo enviar. Intentá de nuevo.')
+        setSubmitState('error')
+        return
+      }
+    }
+
+    // Siempre mandar a Formspree como respaldo (independiente de si Supabase funcionó)
+    try { await submitToFormspree(form) } catch(_) {}
+
+    setSubmitState('success')
   }
 
   const handleBack=()=>{if(step===1){onClose();return}setStep(s=>s-1);setErrors({})}
@@ -341,4 +386,4 @@ export default function RegisterForm({onClose,isDesktop=false}) {
       </div>
     </div>
   )
-          }
+}
