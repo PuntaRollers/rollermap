@@ -52,7 +52,7 @@ function createUserMarkerEl() {
   return el
 }
 
-export default function MapView({ locations=[], allLocations=[], selectedId=null, loading=false, onMarkerClick, onMapReady }) {
+export default function MapView({ locations=[], allLocations=[], selectedId=null, loading=false, onMarkerClick, onMapReady, onUserLocated }) {
   const containerRef = useRef(null)
   const mapRef       = useRef(null)
   const activePopup  = useRef(null)
@@ -81,7 +81,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
     map.on('load', () => {
       map.setPadding({ bottom: 380, top: 60, left: 0, right: 0 })
 
-      // Fuente con clustering activado
       map.addSource('locations', {
         type: 'geojson',
         data: toGeoJSON([]),
@@ -90,28 +89,20 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         clusterRadius: 48,
       })
 
-      // Círculo del cluster
       map.addLayer({
         id: 'clusters',
         type: 'circle',
         source: 'locations',
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': [
-            'step', ['get', 'point_count'],
-            '#00E5CC', 5, '#9B4DFF', 15, '#FF5F00'
-          ],
-          'circle-radius': [
-            'step', ['get', 'point_count'],
-            20, 5, 26, 15, 32
-          ],
+          'circle-color': ['step', ['get', 'point_count'], '#00E5CC', 5, '#9B4DFF', 15, '#FF5F00'],
+          'circle-radius': ['step', ['get', 'point_count'], 20, 5, 26, 15, 32],
           'circle-opacity': 0.88,
           'circle-stroke-width': 2,
           'circle-stroke-color': 'rgba(255,255,255,0.25)',
         }
       })
 
-      // Número dentro del cluster
       map.addLayer({
         id: 'cluster-count',
         type: 'symbol',
@@ -125,7 +116,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         paint: { 'text-color': '#000000' }
       })
 
-      // Puntos individuales
       map.addLayer({
         id: 'unclustered-point',
         type: 'circle',
@@ -139,7 +129,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         }
       })
 
-      // Capa de selección (encima, más grande)
       map.addLayer({
         id: 'unclustered-selected',
         type: 'circle',
@@ -154,7 +143,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         }
       })
 
-      // Click en cluster → zoom in
       map.on('click', 'clusters', (e) => {
         const features = map.queryRenderedFeatures(e.point, { layers:['clusters'] })
         const clusterId = features[0].properties.cluster_id
@@ -164,7 +152,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         })
       })
 
-      // Click en punto individual → popup + card
       map.on('click', 'unclustered-point', (e) => {
         const props = e.features[0].properties
         const loc = allLocsRef.current.find(l => l.id === props.id) ?? props
@@ -176,7 +163,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         onMarkerClick?.(loc)
       })
 
-      // Cursores
       map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = '' })
       map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer' })
@@ -189,14 +175,12 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
     return () => { map.remove(); mapRef.current = null }
   }, []) // eslint-disable-line
 
-  // Actualizar datos cuando cambia el filtro
   useEffect(() => {
     allLocsRef.current = allLocations
     if (!mapReady || !mapRef.current) return
     mapRef.current.getSource('locations')?.setData(toGeoJSON(locations))
   }, [mapReady, locations, allLocations])
 
-  // Resaltar seleccionado
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
     const filter = selectedId
@@ -214,7 +198,12 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
         userMarker.current = new mapboxgl.Marker({ element: createUserMarkerEl() })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(mapRef.current)
-        mapRef.current.flyTo({ center:[coords.longitude, coords.latitude], zoom:11, speed:1.6, curve:1.4, essential:true })
+        mapRef.current.flyTo({
+          center:[coords.longitude, coords.latitude],
+          zoom:11, speed:1.6, curve:1.4, essential:true
+        })
+        // Notificar al App para reordenar la lista
+        onUserLocated?.(coords)
         setLocating(false)
       },
       (err) => {
@@ -224,7 +213,7 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
       },
       { enableHighAccuracy:true, timeout:8000 }
     )
-  }, [])
+  }, [onUserLocated])
 
   return (
     <div style={{ position:'relative', width:'100%', height:'100%' }}>
