@@ -8,11 +8,19 @@ function slugify(name) {
     .trim().replace(/\s+/g, '-')
 }
 
+function formatDistance(km) {
+  if (km === null || km === undefined) return null
+  if (km < 1) return `${Math.round(km * 1000)} m`
+  if (km < 10) return `${km.toFixed(1)} km`
+  return `${Math.round(km)} km`
+}
+
 const LocationCard = forwardRef(function LocationCard({ loc, selected, onClick }, ref) {
   const navigate = useNavigate()
   const initials = loc.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
   const isEscuela = loc.type === 'escuela'
   const accentColor = isEscuela ? '#00E5CC' : '#9B4DFF'
+  const distance = formatDistance(loc.distanceKm)
 
   function handleClick() {
     onClick(loc)
@@ -64,7 +72,7 @@ const LocationCard = forwardRef(function LocationCard({ loc, selected, onClick }
               fontFamily:"'Barlow Condensed', sans-serif",
               fontSize:16, fontWeight:700, color:'#FFFFFF',
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-              maxWidth:180, lineHeight:1.2
+              maxWidth:165, lineHeight:1.2
             }}>
               {loc.name}
             </span>
@@ -79,8 +87,8 @@ const LocationCard = forwardRef(function LocationCard({ loc, selected, onClick }
             {loc.featured && <span style={{ fontSize:11, flexShrink:0 }}>⭐</span>}
           </div>
 
-          {/* Badge + ciudad */}
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {/* Badge + ciudad + distancia */}
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
             <span style={{
               display:'inline-flex', alignItems:'center',
               padding:'2px 8px', borderRadius:9999,
@@ -94,6 +102,17 @@ const LocationCard = forwardRef(function LocationCard({ loc, selected, onClick }
               {isEscuela ? 'Escuela' : 'Grupo'}
             </span>
             <span style={{ fontSize:11, color:'#8888AA' }}>📍 {loc.city}</span>
+            {distance && (
+              <span style={{
+                fontSize:11, fontWeight:700,
+                color:'#00E5CC',
+                background:'rgba(0,229,204,0.08)',
+                padding:'1px 7px', borderRadius:9999,
+                border:'1px solid rgba(0,229,204,0.2)',
+              }}>
+                📏 {distance}
+              </span>
+            )}
           </div>
 
         </div>
