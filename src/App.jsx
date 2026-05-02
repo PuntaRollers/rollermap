@@ -91,7 +91,6 @@ export default function App() {
     setUserLocation({ lat: coords.latitude, lng: coords.longitude })
   }, [setUserLocation])
 
-  // Botón de geolocalización en el header
   const handleGeolocate = useCallback(() => {
     if (!navigator.geolocation) { setGeoError('No disponible'); return }
     setLocating(true)
@@ -154,26 +153,42 @@ export default function App() {
           {!isDesktop && (
             <div className="rm-mobile-header">
               <img src="/logo.png" alt="RollerMap" style={{ height:44, width:'auto', objectFit:'contain' }} />
-              <div style={{ display:'flex', gap:8, pointerEvents:'all' }}>
+              <div style={{ display:'flex', gap:8, pointerEvents:'all', alignItems:'center' }}>
 
-                {/* Botón ubicación */}
+                {/* Botón ubicación con texto */}
                 <button
                   onClick={handleGeolocate}
                   disabled={locating}
                   style={{
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    width:36, height:36, borderRadius:'var(--r-full)',
-                    background: userLocation ? 'rgba(0,229,204,0.15)' : 'rgba(10,10,22,0.85)',
-                    border: `1px solid ${userLocation ? 'rgba(0,229,204,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                    display:'flex', alignItems:'center', gap:5,
+                    padding:'0 12px', height:34, borderRadius:'var(--r-full)',
+                    background: userLocation
+                      ? 'rgba(0,229,204,0.15)'
+                      : 'rgba(10,10,22,0.85)',
+                    border: `1px solid ${userLocation
+                      ? 'rgba(0,229,204,0.6)'
+                      : 'rgba(255,255,255,0.2)'}`,
                     color: userLocation ? '#00E5CC' : '#ffffff',
-                    fontSize:16, cursor:'pointer',
+                    fontSize:12, fontWeight:700,
+                    cursor:'pointer',
                     backdropFilter:'blur(8px)',
                     transition:'all 0.18s ease',
                     opacity: locating ? 0.6 : 1,
+                    whiteSpace:'nowrap',
+                    fontFamily:'var(--font-body)',
                   }}
-                  title="Ubicarme"
                 >
-                  {locating ? '⟳' : '📍'}
+                  <span style={{ fontSize:14 }}>
+                    {locating ? '⟳' : '📍'}
+                  </span>
+                  <span>
+                    {locating
+                      ? 'Buscando…'
+                      : userLocation
+                        ? 'Cerca mío'
+                        : 'Ubicarme'
+                    }
+                  </span>
                 </button>
 
                 <button
