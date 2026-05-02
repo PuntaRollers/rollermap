@@ -110,25 +110,25 @@ async function submitToSupabase(form) {
 }
 
 async function submitToFormspree(form) {
-  const body = {
-    _subject: `[RollerMap] Nueva solicitud: ${form.name}`,
-    tipo: form.type,
-    nombre: form.name,
-    ciudad: form.city,
-    departamento: form.department || '-',
-    direccion: form.address || '-',
-    lat: form.lat || '-',
-    lng: form.lng || '-',
-    instagram: form.instagram || '-',
-    whatsapp: form.whatsapp || '-',
-    email: form.email || '-',
-    horarios: form.schedule || '-',
-    descripcion: form.description || '-',
+  const body={
+    _subject:`[RollerMap] Nueva solicitud: ${form.name}`,
+    tipo:form.type,
+    nombre:form.name,
+    ciudad:form.city,
+    departamento:form.department||'-',
+    direccion:form.address||'-',
+    lat:form.lat||'-',
+    lng:form.lng||'-',
+    instagram:form.instagram||'-',
+    whatsapp:form.whatsapp||'-',
+    email:form.email||'-',
+    horarios:form.schedule||'-',
+    descripcion:form.description||'-',
   }
-  const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(body),
+  const res=await fetch(`https://formspree.io/f/${FORMSPREE_ID}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify(body),
   })
   if (!res.ok) throw new Error('Formspree error')
 }
@@ -309,27 +309,18 @@ export default function RegisterForm({onClose,isDesktop=false}) {
     if (Object.keys(errs).length>0){setErrors(errs);return}
     setErrors({})
     if (step<3){setStep(s=>s+1);return}
-
     setSubmitState('loading')
     setSubmitError(null)
-
     try {
-      // Intentar Supabase primero
       await submitToSupabase(form)
-    } catch(supabaseErr) {
-      // Si falla Supabase, mandar a Formspree silenciosamente
-      try {
-        await submitToFormspree(form)
-      } catch(formspreeErr) {
+    } catch(e) {
+      try { await submitToFormspree(form) } catch(_) {
         setSubmitError('No se pudo enviar. Intentá de nuevo.')
         setSubmitState('error')
         return
       }
     }
-
-    // Siempre mandar a Formspree como respaldo (independiente de si Supabase funcionó)
     try { await submitToFormspree(form) } catch(_) {}
-
     setSubmitState('success')
   }
 
@@ -354,7 +345,6 @@ export default function RegisterForm({onClose,isDesktop=false}) {
             {!isSuccess&&<div style={{fontSize:11,color:'var(--muted2)',marginTop:1}}>{STEPS[step-1].icon} {STEPS[step-1].label} · Paso {step} de {STEPS.length}</div>}
           </div>
         </div>
-
         {!isSuccess&&(
           <div className="rm-progress">
             {STEPS.map(s=>(
@@ -365,7 +355,6 @@ export default function RegisterForm({onClose,isDesktop=false}) {
             ))}
           </div>
         )}
-
         {isSuccess?<SuccessScreen form={form} onClose={onClose}/>:(
           <>
             <div className="rm-modal__body">
@@ -385,5 +374,5 @@ export default function RegisterForm({onClose,isDesktop=false}) {
         )}
       </div>
     </div>
-  ))
+  )
 }
