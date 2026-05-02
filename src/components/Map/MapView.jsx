@@ -5,51 +5,12 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 
 const URUGUAY_CENTER = [-56.1645, -34.9011]
-const COLORS = {
-  escuela: { fill:'#00E5CC', glow:'rgba(0,229,204,0.35)' },
-  grupo:   { fill:'#9B4DFF', glow:'rgba(155,77,255,0.35)' },
-  user:    { fill:'#0EA5E9', glow:'rgba(14,165,233,0.35)' },
-}
-
-function createMarkerEl(type, featured = false) {
-  const c = COLORS[type] ?? COLORS.escuela
-  const size = featured ? 44 : 36
-  const h = Math.round(size * 44 / 36)
-  const solid = type === 'escuela'
-  const el = document.createElement('div')
-  el.dataset.type = type
-  el.style.cssText = `width:${size}px;height:${h}px;cursor:pointer;filter:drop-shadow(0 2px 8px ${c.glow});transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),filter 0.18s ease,opacity 0.2s ease;will-change:transform,opacity;`
-  el.innerHTML = `<svg viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${h}">
-    <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 26 14 26S32 26 32 16C32 8.268 25.732 2 18 2z"
-      fill="${solid ? c.fill : 'rgba(10,10,22,0.9)'}"
-      stroke="${solid ? 'none' : c.fill}"
-      stroke-width="${solid ? 0 : 2}"/>
-    <circle cx="18" cy="16" r="5.5"
-      fill="${solid ? 'rgba(0,0,0,0.6)' : c.fill}"/>
-    ${featured ? `<circle cx="18" cy="16" r="13" fill="none" stroke="${c.fill}" stroke-width="1.5" stroke-dasharray="3.5 3" opacity="0.6"/>` : ''}
-  </svg>`
-  el.addEventListener('mouseenter', () => {
-    el.style.filter = `drop-shadow(0 5px 18px ${c.glow})`
-    el.style.transform = 'scale(1.18) translateY(-2px)'
-  })
-  el.addEventListener('mouseleave', () => {
-    el.dispatchEvent(new CustomEvent('rm:mouseleave', { bubbles: true }))
-  })
-  return el
-}
-
-function createUserMarkerEl() {
-  const el = document.createElement('div')
-  el.style.cssText = `width:16px;height:16px;border-radius:50%;background:${COLORS.user.fill};border:3px solid white;box-shadow:0 2px 8px ${COLORS.user.glow};`
-  return el
-}
 
 function buildPopupHTML(loc) {
   const initials = loc.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
   const waHref = loc.whatsapp ? `https://wa.me/${loc.whatsapp.replace(/\D/g,'')}` : null
   const igHref = loc.instagram ? `https://instagram.com/${loc.instagram.replace('@','')}` : null
   const desc = loc.description ? `${loc.description.slice(0,110)}${loc.description.length>110?'…':''}` : null
-
   return `<div class="rm-popup">
     <div class="rm-popup__header">
       ${loc.image_url
@@ -74,19 +35,36 @@ function buildPopupHTML(loc) {
   </div>`
 }
 
+function toGeoJSON(locs) {
+  return {
+    type: 'FeatureCollection',
+    features: locs.map(loc => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [loc.lng, loc.lat] },
+      properties: { ...loc }
+    }))
+  }
+}
+
+function createUserMarkerEl() {
+  const el = document.createElement('div')
+  el.style.cssText = `width:16px;height:16px;border-radius:50%;background:#0EA5E9;border:3px solid white;box-shadow:0 2px 8px rgba(14,165,233,0.35);`
+  return el
+}
+
 export default function MapView({ locations=[], allLocations=[], selectedId=null, loading=false, onMarkerClick, onMapReady }) {
   const containerRef = useRef(null)
   const mapRef       = useRef(null)
-  const markersRef   = useRef({})
   const activePopup  = useRef(null)
   const userMarker   = useRef(null)
+  const allLocsRef   = useRef([])
   const [mapReady, setMapReady] = useState(false)
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState(null)
 
   useEffect(() => {
     if (mapRef.current) return
-    mapRef.current = new mapboxgl.Map({
+    const map = new mapboxgl.Map({
       container: containerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       center: URUGUAY_CENTER,
@@ -96,55 +74,136 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
       pitchWithRotate: false,
       maxBounds: [[-62,-36],[-52,-28]],
     })
-    mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right')
-    mapRef.current.addControl(new mapboxgl.ScaleControl({ unit:'metric' }), 'bottom-left')
-    mapRef.current.on('load', () => {
-      mapRef.current.setPadding({ bottom: 380, top: 60, left: 0, right: 0 })
-      setMapReady(true)
-      onMapReady?.(mapRef.current)
-    })
-    return () => { mapRef.current?.remove(); mapRef.current = null }
-  }, []) // eslint-disable-line
+    mapRef.current = map
+    map.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right')
+    map.addControl(new mapboxgl.ScaleControl({ unit:'metric' }), 'bottom-left')
 
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return
-    allLocations.forEach(loc => {
-      if (markersRef.current[loc.id]) return
-      const el = createMarkerEl(loc.type, loc.featured)
-      const popup = new mapboxgl.Popup({ offset:42, closeButton:true, maxWidth:'300px' })
-        .setHTML(buildPopupHTML(loc))
-      const marker = new mapboxgl.Marker({ element:el, anchor:'bottom' })
-        .setLngLat([loc.lng, loc.lat])
-        .setPopup(popup)
-        .addTo(mapRef.current)
-      el.addEventListener('click', () => {
-        if (activePopup.current && activePopup.current !== popup) activePopup.current.remove()
-        activePopup.current = popup
+    map.on('load', () => {
+      map.setPadding({ bottom: 380, top: 60, left: 0, right: 0 })
+
+      // Fuente con clustering activado
+      map.addSource('locations', {
+        type: 'geojson',
+        data: toGeoJSON([]),
+        cluster: true,
+        clusterMaxZoom: 12,
+        clusterRadius: 48,
+      })
+
+      // Círculo del cluster
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'locations',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step', ['get', 'point_count'],
+            '#00E5CC', 5, '#9B4DFF', 15, '#FF5F00'
+          ],
+          'circle-radius': [
+            'step', ['get', 'point_count'],
+            20, 5, 26, 15, 32
+          ],
+          'circle-opacity': 0.88,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255,255,255,0.25)',
+        }
+      })
+
+      // Número dentro del cluster
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'locations',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['DIN Offc Pro Bold', 'Arial Unicode MS Bold'],
+          'text-size': 13,
+        },
+        paint: { 'text-color': '#000000' }
+      })
+
+      // Puntos individuales
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: 'locations',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': ['match', ['get', 'type'], 'escuela', '#00E5CC', '#9B4DFF'],
+          'circle-radius': 13,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': 'rgba(255,255,255,0.35)',
+        }
+      })
+
+      // Capa de selección (encima, más grande)
+      map.addLayer({
+        id: 'unclustered-selected',
+        type: 'circle',
+        source: 'locations',
+        filter: ['==', ['get', 'id'], ''],
+        paint: {
+          'circle-color': ['match', ['get', 'type'], 'escuela', '#00E5CC', '#9B4DFF'],
+          'circle-radius': 18,
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 1,
+        }
+      })
+
+      // Click en cluster → zoom in
+      map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers:['clusters'] })
+        const clusterId = features[0].properties.cluster_id
+        map.getSource('locations').getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return
+          map.easeTo({ center: features[0].geometry.coordinates, zoom, duration: 500 })
+        })
+      })
+
+      // Click en punto individual → popup + card
+      map.on('click', 'unclustered-point', (e) => {
+        const props = e.features[0].properties
+        const loc = allLocsRef.current.find(l => l.id === props.id) ?? props
+        if (activePopup.current) activePopup.current.remove()
+        activePopup.current = new mapboxgl.Popup({ offset:20, closeButton:true, maxWidth:'300px' })
+          .setLngLat(e.features[0].geometry.coordinates)
+          .setHTML(buildPopupHTML(loc))
+          .addTo(map)
         onMarkerClick?.(loc)
       })
-      markersRef.current[loc.id] = { marker, el, popup }
-    })
-  }, [mapReady, allLocations, onMarkerClick])
 
-  useEffect(() => {
-    const filteredIds = new Set(locations.map(l => l.id))
-    const hasFilter = allLocations.length !== locations.length
-    Object.entries(markersRef.current).forEach(([id, { el }]) => {
-      const visible = !hasFilter || filteredIds.has(id)
-      el.style.opacity = visible ? '1' : '0.15'
-      el.style.pointerEvents = visible ? 'auto' : 'none'
-    })
-  }, [locations, allLocations])
+      // Cursores
+      map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = '' })
+      map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = '' })
 
-  useEffect(() => {
-    Object.entries(markersRef.current).forEach(([id, { el }]) => {
-      const c = COLORS[el.dataset.type] ?? COLORS.escuela
-      const isSel = id === String(selectedId)
-      el.style.transform = isSel ? 'scale(1.25) translateY(-3px)' : ''
-      el.style.filter = `drop-shadow(${isSel ? '0 6px 20px' : '0 2px 8px'} ${c.glow})`
-      el.style.zIndex = isSel ? '5' : ''
+      setMapReady(true)
+      onMapReady?.(map)
     })
-  }, [selectedId])
+
+    return () => { map.remove(); mapRef.current = null }
+  }, []) // eslint-disable-line
+
+  // Actualizar datos cuando cambia el filtro
+  useEffect(() => {
+    allLocsRef.current = allLocations
+    if (!mapReady || !mapRef.current) return
+    mapRef.current.getSource('locations')?.setData(toGeoJSON(locations))
+  }, [mapReady, locations, allLocations])
+
+  // Resaltar seleccionado
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+    const filter = selectedId
+      ? ['==', ['get', 'id'], selectedId]
+      : ['==', ['get', 'id'], '']
+    mapRef.current.setFilter('unclustered-selected', filter)
+  }, [mapReady, selectedId])
 
   const handleGeolocate = useCallback(() => {
     if (!navigator.geolocation) { setGeoError('No disponible.'); return }
