@@ -1,18 +1,33 @@
 import { forwardRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+function slugify(name) {
+  return name.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim().replace(/\s+/g, '-')
+}
 
 const LocationCard = forwardRef(function LocationCard({ loc, selected, onClick }, ref) {
+  const navigate = useNavigate()
   const initials = loc.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()
   const isEscuela = loc.type === 'escuela'
   const accentColor = isEscuela ? '#00E5CC' : '#9B4DFF'
+
+  function handleClick() {
+    onClick(loc)
+    navigate(`/lugar/${slugify(loc.name)}`)
+  }
 
   return (
     <div
       ref={ref}
       className={`rm-card rm-loc-card ${selected ? 'rm-loc-card--selected' : ''}`}
-      onClick={() => onClick(loc)}
+      onClick={handleClick}
       style={{
         borderLeft: `3px solid ${selected ? accentColor : 'transparent'}`,
         transition: 'all 0.18s ease',
+        cursor: 'pointer',
       }}
     >
       <div style={{ padding:'12px 14px 12px 12px', display:'flex', alignItems:'center', gap:12 }}>
