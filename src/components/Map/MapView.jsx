@@ -59,8 +59,26 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
   const userMarker   = useRef(null)
   const allLocsRef   = useRef([])
   const [mapReady, setMapReady] = useState(false)
-  const [locating, setLocating] = useState(false)
-  const [geoError, setGeoError] = useState(null)
+
+  // Exponer función de geolocalización al padre
+  useEffect(() => {
+    if (!onUserLocated) return
+    window.__rmGeolocate = () => {
+      if (!navigator.geolocation || !mapRef.current) return
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          userMarker.current?.remove()
+          userMarker.current = new mapboxgl.Marker({ element: createUserMarkerEl() })
+            .setLngLat([coords.longitude, coords.latitude])
+            .addTo(mapRef.current)
+          mapRef.current.flyTo({ center:[coords.longitude, coords.latitude], zoom:11, speed:1.6, curve:1.4, essential:true })
+          onUserLocated(coords)
+        },
+        () => {}
+      )
+    }
+    return () => { delete window.__rmGeolocate }
+  }, [onUserLocated])
 
   useEffect(() => {
     if (mapRef.current) return
@@ -189,32 +207,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
     mapRef.current.setFilter('unclustered-selected', filter)
   }, [mapReady, selectedId])
 
-  const handleGeolocate = useCallback(() => {
-    if (!navigator.geolocation) { setGeoError('No disponible.'); return }
-    setLocating(true); setGeoError(null)
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        userMarker.current?.remove()
-        userMarker.current = new mapboxgl.Marker({ element: createUserMarkerEl() })
-          .setLngLat([coords.longitude, coords.latitude])
-          .addTo(mapRef.current)
-        mapRef.current.flyTo({
-          center:[coords.longitude, coords.latitude],
-          zoom:11, speed:1.6, curve:1.4, essential:true
-        })
-        // Notificar al App para reordenar la lista
-        onUserLocated?.(coords)
-        setLocating(false)
-      },
-      (err) => {
-        const msgs = { 1:'Permiso denegado.', 2:'No se pudo obtener.', 3:'Tiempo agotado.' }
-        setGeoError(msgs[err.code] ?? 'Error.')
-        setLocating(false)
-      },
-      { enableHighAccuracy:true, timeout:8000 }
-    )
-  }, [onUserLocated])
-
   return (
     <div style={{ position:'relative', width:'100%', height:'100%' }}>
       <div ref={containerRef} style={{ width:'100%', height:'100%' }} />
@@ -223,22 +215,6 @@ export default function MapView({ locations=[], allLocations=[], selectedId=null
           <div className="rm-spinner rm-spinner--brand" /> Cargando mapa…
         </div>
       )}
-      {geoError && (
-        <div className="rm-alert rm-alert--error" style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)', zIndex:20, whiteSpace:'nowrap' }}>
-          📍 {geoError}
-        </div>
-      )}
-      <button
-        className={`rm-geolocate ${locating ? 'rm-geolocate--active' : ''}`}
-        onClick={handleGeolocate}
-        disabled={locating}
-      >
-        {locating ? (
-          <>⟳ Buscando…</>
-        ) : (
-          <>🛼 <span style={{ display:'flex', flexDirection:'column', lineHeight:1.1 }}><span>Tocá aquí</span><span style={{ fontSize:9, opacity:0.7, fontWeight:500 }}>para ubicarte</span></span></>
-        )}
-      </button>
     </div>
   )
 }
