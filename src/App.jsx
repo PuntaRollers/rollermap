@@ -60,7 +60,6 @@ function SplashScreen({ onDone }) {
       <span style={{ fontSize:11, color:'var(--muted2)', letterSpacing:2, textTransform:'uppercase' }}>
         by Alianza Roller
       </span>
-
       <style>{`
         @keyframes rm-loading-bar {
           from { width: 0%; }
@@ -81,9 +80,10 @@ export default function App() {
   const { locations: allLocations, loading, error } = useLocations()
 
   const {
-    selectedId, filterType, filterCity, search,
+    selectedId, filterType, filterCity, search, userLocation,
     filtered, cities, hasActiveFilters,
-    setSelectedId, setFilterType, setFilterCity, setSearch, clearFilters,
+    setSelectedId, setFilterType, setFilterCity, setSearch,
+    setUserLocation, clearFilters,
   } = useMapState(allLocations)
 
   const handleMarkerClick = useCallback((loc) => {
@@ -104,8 +104,13 @@ export default function App() {
     mapInstanceRef.current = map
   }, [])
 
+  // Cuando el mapa geolocaliza al usuario, actualizamos el hook
+  const handleUserLocated = useCallback((coords) => {
+    setUserLocation({ lat: coords.latitude, lng: coords.longitude })
+  }, [setUserLocation])
+
   const sharedProps = {
-    filtered, cities, loading, hasActiveFilters,
+    filtered, cities, loading, hasActiveFilters, userLocation,
     selectedId, filterType, filterCity, search,
     onCardClick: handleCardClick,
     onTypeChange: setFilterType,
@@ -137,6 +142,7 @@ export default function App() {
             loading={loading}
             onMarkerClick={handleMarkerClick}
             onMapReady={handleMapReady}
+            onUserLocated={handleUserLocated}
           />
 
           {!isDesktop && (
