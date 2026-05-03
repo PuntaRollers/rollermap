@@ -83,7 +83,8 @@ function validate(step,form) {
     if(form.lng&&isNaN(parseFloat(form.lng))) errs.lng='Longitud inválida'
   }
   if (step===3){
-    if(form.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email='Email inválido'
+    if(!form.email.trim()) errs.email='El email es obligatorio'
+    else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email='Email inválido'
   }
   return errs
 }
@@ -235,9 +236,9 @@ function Step3({form,errors,onChange}) {
         <input className="rm-input" placeholder="091 234 567" value={form.whatsapp} inputMode="tel" onChange={(e)=>onChange('whatsapp',e.target.value)}/>
       </div>
       <div className="rm-form-group">
-        <label className="rm-label">Email de contacto</label>
+        <label className="rm-label">Email de contacto <span style={{color:'var(--brand)'}}>*</span></label>
         <input className={`rm-input ${errors.email?'rm-input--error':''}`} placeholder="contacto@tuescuela.com" value={form.email} inputMode="email" onChange={(e)=>onChange('email',e.target.value)}/>
-        <span style={{fontSize:11,color:'var(--muted2)'}}>Solo lo ve el equipo de Alianza Roller</span>
+        <span style={{fontSize:11,color:'var(--muted2)'}}>Para contactarte cuando aprobemos tu solicitud</span>
         {errors.email&&<span style={{fontSize:11.5,color:'var(--danger)'}}>⚠ {errors.email}</span>}
       </div>
       <div className="rm-form-group">
@@ -276,7 +277,7 @@ function SuccessScreen({form,onClose}) {
           {[
             {icon:'🔍',text:'El equipo de Alianza Roller revisa tu solicitud.'},
             {icon:'⏱',text:'El proceso tarda entre 24 y 48 horas hábiles.'},
-            {icon:hasIg?'📸':hasWa?'💬':'📬',text:hasIg&&hasWa?`Te contactamos por Instagram (@${form.instagram}) o WhatsApp.`:hasIg?`Te contactamos por Instagram (@${form.instagram}).`:hasWa?'Te contactamos por WhatsApp.':'Te avisamos cuando esté aprobado.'},
+            {icon:'📧',text:`Te contactamos al email ${form.email} cuando esté aprobado.`},
             {icon:'🗺',text:'Una vez aprobada, aparece en el mapa.'}
           ].map(({icon,text},i)=>(
             <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',marginBottom:8}}>
@@ -312,18 +313,16 @@ export default function RegisterForm({onClose,isDesktop=false}) {
     setSubmitState('loading')
     setSubmitError(null)
 
-    let supabaseOk = false
+    let supabaseOk=false
     try {
       await submitToSupabase(form)
-      supabaseOk = true
+      supabaseOk=true
     } catch(supabaseErr) {
-      // Supabase falló — mostrar error real para debug
-      console.error('Supabase error:', supabaseErr.message)
+      console.error('Supabase error:',supabaseErr.message)
       setSubmitError(`Supabase: ${supabaseErr.message}`)
       setSubmitState('error')
     }
 
-    // Siempre mandar a Formspree
     try { await submitToFormspree(form) } catch(_) {}
 
     if (supabaseOk) setSubmitState('success')
@@ -380,4 +379,4 @@ export default function RegisterForm({onClose,isDesktop=false}) {
       </div>
     </div>
   )
-      }
+          }
